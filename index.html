@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Talk2Learn | Connect & Speak</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
+</head>
+<body>
+
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-left">
+                <img src="logo.png" alt="T2L Logo" class="brand-logo" onerror="this.style.display='none'">
+            </div>
+            <div class="nav-center">
+                <h1 class="nav-brand">{Talk<span class="blue-text">2</span>Learn}</h1>
+            </div>
+            <div class="nav-right">
+                <div class="nav-links">
+                    <a href="#home">Home</a>
+                    <a href="#how-it-works">How it works</a>
+                    <a href="#why-safe">Safety</a>
+                    <a href="#guidelines-section">Guidelines</a>
+                </div>
+                <button class="admin-icon-btn" title="Admin Settings" onclick="document.getElementById('adminModal').classList.remove('hidden')">⚙️</button>
+            </div>
+        </div>
+    </nav>
+
+    <div id="home-content">
+        <div class="live-status-bar">
+            <span class="pulse-dot"></span>
+            <span id="live-count-text">0 Students Online Practice Kar Rahe Hain</span>
+        </div>
+
+        <header id="home" class="hero-section fade-in-up">
+            <div class="hero-content">
+                <h2 class="hero-title">"Duniya bhar ke students se judein aur English bolna seekhein."</h2>
+                <p class="hero-sub">Practice English with real people, anytime, anywhere!</p>
+                <div class="quote-container">
+                    <p>"Mistakes are proof that you are trying."</p>
+                </div>
+                <a href="#practice-area" class="cta-button">Let's Get Started ↓</a>
+            </div>
+        </header>
+
+        <section id="how-it-works" class="info-section fade-in-up delay-1">
+            <h3 class="section-heading">Website Kaise Istemal Karein? 🚀</h3>
+            <p class="section-sub">Bas 3 aasan steps aur aapki practice shuru!</p>
+            <div class="feature-grid">
+                <div class="feature-card animate-hover">
+                    <div class="icon-circle">📝</div>
+                    <h4>1. Details Bharein</h4>
+                    <p>Apna naam aur English level (Beginner/Intermediate/Advanced) select karein.</p>
+                </div>
+                <div class="feature-card animate-hover">
+                    <div class="icon-circle">🔍</div>
+                    <h4>2. Match Karein</h4>
+                    <p>"Find Partner" par click karein. Humara system automatically aapke level ke partner se connect karega.</p>
+                </div>
+                <div class="feature-card animate-hover">
+                    <div class="icon-circle">🗣️</div>
+                    <h4>3. Bolna Seekhein</h4>
+                    <p>Video, Audio aur Live Chat ka use karke English mein baat karein. Agar maza na aaye, toh "Next" dabayein!</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="practice-area" class="app-section fade-in-up delay-2">
+            <div class="practice-card animate-hover">
+                <h3 class="form-title">Ready to Speak?</h3>
+                <form id="practiceForm">
+                    <div class="input-box">
+                        <label>Your Name</label>
+                        <input type="text" id="username" placeholder="Enter Full Name" required>
+                    </div>
+                    <div class="input-box">
+                        <label>English Level</label>
+                        <select id="level" required>
+                            <option value="" disabled selected>Select Your Level</option>
+                            <option value="Beginner">Beginner</option>
+                            <option value="Intermediate">Intermediate</option>
+                            <option value="Advanced">Advanced</option>
+                        </select>
+                    </div>
+                    <button type="submit" id="startBtn" class="pulse-btn">Find Partner 🚀</button>
+                </form>
+            </div>
+        </section>
+
+        <section id="why-safe" class="info-section alternate-bg fade-in-up">
+            <h3 class="section-heading">Kyu Hai {Talk2Learn} Sabse Behtar Aur Safe? 🛡️</h3>
+            <div class="safety-grid">
+                <div class="safety-box">
+                    <h4>🎓 Sirf Students Ke Liye</h4>
+                    <p>Ye platform strictly learners ke liye design kiya gaya hai. Yahan sabhi aapki tarah hi English seekhna chahte hain, isliye hesitation ki koi zaroorat nahi!</p>
+                </div>
+                <div class="safety-box">
+                    <h4>🔒 Safe & Secure</h4>
+                    <p>Humara system anonymous matching karta hai. Admin panel live activities monitor karta hai taaki platform par koi galat behaviour na ho.</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="guidelines-section" class="info-section fade-in-up">
+            <h3 class="section-heading">Community Guidelines 📜</h3>
+            <div class="guidelines-card">
+                <ul>
+                    <li>✅ <strong>Respect Everyone:</strong> Dusre students ki izzat karein, chahe unki English tuti-futi hi kyu na ho.</li>
+                    <li>✅ <strong>Keep it Clean:</strong> Koi bhi abusive bhasha ya galat behaviour tolerate nahi kiya jayega (Admin can ban you).</li>
+                    <li>✅ <strong>Help Each Other:</strong> Agar aapko koi word aata hai jo partner ko nahi aata, toh Live Chat me likh kar unki madad karein.</li>
+                </ul>
+            </div>
+        </section>
+    </div>
+
+    <div id="loading-ui" class="hidden" style="height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; background: var(--bg); position: fixed; top: 0; left: 0; width: 100vw; z-index: 5000;">
+        <div class="spinner"></div>
+        <h2 style="margin-top: 20px; color: var(--primary);">Searching for a partner... 🔍</h2>
+        <p>Please wait while we match you with another student.</p>
+    </div>
+
+    <div id="video-ui" class="hidden">
+        <div class="video-container">
+            <video id="remoteVideo" autoplay playsinline></video>
+            <video id="localVideo" autoplay muted playsinline></video>
+            <div class="controls">
+                <button onclick="toggleAudio()" id="micBtn" class="control-btn">🎤</button>
+                <button onclick="toggleVideo()" id="camBtn" class="control-btn">📷</button>
+                <button onclick="toggleChat()" id="chatToggleBtn" class="control-btn">💬</button> 
+                <button onclick="skipPartner()" class="skip-btn" style="background:#ffb142; color:white; border:none; cursor:pointer;">Next ⏭️</button>
+                <button onclick="endMyCall()" class="end-call-btn" style="background:red; color:white; border:none; cursor:pointer;">End</button>
+            </div>
+            
+            <div id="chatBox" class="chat-box hidden">
+                <div class="chat-header">
+                    <span>Live Chat</span>
+                    <button onclick="toggleChat()">✖</button>
+                </div>
+                <div id="chat-messages"></div>
+                <div class="chat-input">
+                    <input type="text" id="chatInputMsg" placeholder="Type a message..." onkeypress="handleKeyPress(event)">
+                    <button onclick="sendMessage()">Send</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="adminModal" class="modal hidden">
+        <div class="modal-content">
+            <h3>🔒 Admin Access</h3>
+            <input type="password" id="adminPass" placeholder="Enter Password">
+            <div class="modal-buttons">
+                <button onclick="document.getElementById('adminModal').classList.add('hidden')">Cancel</button>
+                <button id="loginBtn">Login</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="adminDashboard" class="admin-panel hidden">
+        <div class="panel-header">
+            <h2>🛠️ Live Monitor Dashboard</h2>
+            <button onclick="logoutAdmin()" class="logout-btn">Logout</button>
+        </div>
+        <div class="admin-stats">
+            <div class="stat-box blue"><small>Total Online</small><h3 id="admin-total-online">0</h3></div>
+            <div class="stat-box green"><small>Active Calls</small><h3 id="admin-active-calls">0</h3></div>
+            <div class="stat-box orange"><small>Searching</small><h3 id="admin-searching">0</h3></div>
+        </div>
+        <div class="admin-main-grid">
+            <div class="log-section">
+                <h3>Activity Feed (Live)</h3>
+                <div id="log-container" class="log-feed"></div>
+            </div>
+            <div class="user-list-section">
+                <h3>Connected Students</h3>
+                <table>
+                    <thead><tr><th>Name</th><th>Level</th><th>Status</th><th>Action</th></tr></thead>
+                    <tbody id="admin-user-list"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <footer class="new-footer">
+        <div class="footer-container">
+            <div class="footer-col">
+                <h4>Talk2Learn</h4>
+                <p>A safe space to overcome English hesitation.</p>
+                <div class="footer-links">
+                    <a href="#home">Home</a>
+                    <a href="#how-it-works">How it Works</a>
+                    <a href="#guidelines-section">Guidelines</a>
+                </div>
+            </div>
+            <div class="footer-col">
+                <h4>Contact Us 📧</h4>
+                <p>Drop a message if you need help or want to report an issue.</p>
+                <p><strong>Email:</strong> ✉️ support@talk2learn.com</p> <p><strong>Location:</strong> Gaya, Bihar, India</p>
+            </div>
+            <div class="footer-col dev-profile">
+                <h4>About the Developer 👨‍💻</h4>
+                <p><strong>Name:</strong> Md Mozammil Khan</p>
+                <p><strong>Course:</strong> BCA 3rd Year</p>
+                <p><strong>College:</strong> Mirza Ghalib College </p>
+                <p class="dev-note">"Built with ❤️ to help students learn together."</p>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>© 2026 Talk2Learn. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script src="script.js"></script>
+    
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            const elements = document.querySelectorAll('.fade-in-up');
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('visible');
+                    }
+                });
+            }, { threshold: 0.1 });
+            elements.forEach(el => observer.observe(el));
+        });
+    </script>
+</body>
+</html>
