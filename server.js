@@ -83,7 +83,7 @@ io.on('connection', (socket) => {
             u.id !== socket.id && 
             u.level === userData.level && 
             !u.inCall &&
-            u.id !== users[socket.id].lastPartner // <-- Ye line pichle partner se match hone roki hai
+            u.id !== users[socket.id].lastPartner 
         );
 
         if (partner) {

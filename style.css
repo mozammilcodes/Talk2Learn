@@ -199,7 +199,7 @@ th { background: #ff758c; color: white; }
     top: 0;
     left: 0;
     width: 100vw;
-    height: 100dvh; /* Mobile browsers me address bar issue fix karega */
+    height: 100dvh; /* Mobile browsers me address bar issue fix  */
     background: #000;
     z-index: 1000; 
     overflow: hidden;
@@ -216,7 +216,7 @@ th { background: #ff758c; color: white; }
     z-index: 1001;
 }
 
-/* Local Video (Aapka apna camera) - Desktop Default */
+/* Local Video  - Desktop Default */
 #localVideo {
     position: absolute;
     z-index: 1002; /* Sabse upar dikhane ke liye */
@@ -439,7 +439,7 @@ th { background: #ff758c; color: white; }
 
 #adminDashboard {
     width: 100%;
-    overflow-x: auto; /* Table mobile par scroll hoga layout nahi bigadega */
+    overflow-x: auto; /* Table mobile par scroll  */
 }
 
 table {
@@ -551,9 +551,6 @@ th { background: #f8f9fa; color: #555; }
     }
 }
 
-/* ========================================= */
-/* ====== NEW MODERN AESTHETIC UPGRADES ==== */
-/* ========================================= */
 
 /* ANIMATIONS */
 .fade-in-up {
@@ -712,7 +709,6 @@ html { scroll-behavior: smooth; }
 
 /* ========================================= */
 /* ====== SUPER LIGHTWEIGHT ANIMATIONS ===== */
-/* ====== (No Battery Drain, No Lag) ======= */
 /* ========================================= */
 
 /* 1. Live Gradient Background for Hero Section */
@@ -731,7 +727,7 @@ html { scroll-behavior: smooth; }
 }
 
 /* 2. Floating Effect for Practice Card & Features */
-/* Ye elements ko halke-halke upar-neeche float karwayega */
+
 .practice-card {
     animation: floatSmooth 6s ease-in-out infinite;
 }

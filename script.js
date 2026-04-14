@@ -126,7 +126,7 @@ function handleCall(call) {
             autoSearchAfterDisconnect();
         }
     });
-} // <-- Ye handleCall function ka closing bracket hai
+} 
 
 // ========================================================
 // ====== CALL END & DISCONNECT HANDLING ========
