@@ -695,11 +695,13 @@ th { background: #f8f9fa; color: #555; }
 .footer-links a:hover { color: var(--secondary); padding-left: 5px; }
 
 .dev-profile {
-    background: rgba(255,255,255,0.05);
+    background: rgba(107, 154, 173, 0.117);
     padding: 20px;
     border-radius: 15px;
     border-top: 3px solid var(--secondary);
+    p { color: #f6f4e8;}
 }
+
 .dev-note { font-style: italic; color: #ffeb3b !important; margin-top: 15px !important; }
 
 .footer-bottom { text-align: center; padding-top: 20px; color: #888; font-size: 0.9rem; }
