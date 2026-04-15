@@ -186,6 +186,21 @@ function autoSearchAfterDisconnect() {
 function skipPartner() {
     console.log("⏭️ Skipping to next partner...");
     
+    // ====== ANTI-SPAM (Button Disable Logic) ======
+    
+    const skipBtn = document.getElementById('skipBtn'); 
+    if (skipBtn) {
+        skipBtn.disabled = true; // Button ko turant click hone se roko
+        skipBtn.style.opacity = "0.5"; // Thoda dhundhla kar do taaki pata chale band hai
+        
+        // 2 second (2000ms) baad button wapas normal kar do
+        setTimeout(() => {
+            skipBtn.disabled = false;
+            skipBtn.style.opacity = "1";
+        }, 2000);
+    }
+    // ==========================================================
+
     // TRICK: Pehle call object ko null karo taaki reload wala event trigger na ho
     if (currentCall) {
         const callToClose = currentCall;

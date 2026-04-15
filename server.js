@@ -55,9 +55,12 @@ io.on('connection', (socket) => {
     });
 
     socket.on('start-search', (userData) => {
-        // NAYA: Check karna ki iska purana partner kaun tha (agar koi tha toh...)
-        const previousPartnerId = users[socket.id] ? users[socket.id].lastPartner : null;
+    // NAYI LINE: Agar user pehle se call mein hai, toh use dobara search mat karne do
+    if (users[socket.id] && users[socket.id].inCall === true) return; 
 
+    // ... aapka baaki ka purana code niche waise hi rahega ...
+    const previousPartnerId = users[socket.id] ? users[socket.id].lastPartner : null;
+    // ...
         users[socket.id] = { 
             id: socket.id, 
             username: userData.name, 
