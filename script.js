@@ -2,13 +2,13 @@ const socket = io();
 
 // Fix: Mobile Networks ke liye extra STUN servers
 const peer = new Peer({
-    config: { 
+    config: {
         'iceServers': [
             { urls: 'stun:stun.l.google.com:19302' },
             { urls: 'stun:stun1.l.google.com:19302' },
             { urls: 'stun:stun.stunprotocol.org:3478' },
             { urls: 'stun:global.stun.twilio.com:3478' }
-        ] 
+        ]
     }
 });
 
@@ -16,8 +16,8 @@ let localStream;
 let myPeerId = null;
 let currentCall = null; // Current call ko track karne ke liye
 
-peer.on('open', (id) => { 
-    myPeerId = id; 
+peer.on('open', (id) => {
+    myPeerId = id;
     console.log("My Peer ID is:", id);
 });
 
@@ -36,16 +36,16 @@ document.getElementById('practiceForm').addEventListener('submit', async (e) => 
         if (!localStream) {
             localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
         }
-        
+
         // Video UI ki jagah pehle Loading UI dikhayein
         document.getElementById('home-content').classList.add('hidden');
         document.getElementById('loading-ui').classList.remove('hidden');
-        
+
         const localVid = document.getElementById('localVideo');
         if (localVid) {
             localVid.srcObject = localStream;
             localVid.muted = true;
-            localVid.playsInline = true; 
+            localVid.playsInline = true;
             localVid.play().catch(e => console.error("Local video play failed:", e));
         }
 
@@ -54,7 +54,7 @@ document.getElementById('practiceForm').addEventListener('submit', async (e) => 
             level: document.getElementById('level').value,
             peerId: myPeerId
         });
-        
+
     } catch (err) {
         console.error("Media Error:", err);
         alert("Camera aur Mic access dena zaroori hai. Please enable permissions.");
@@ -75,9 +75,9 @@ socket.on('match-found', (data) => {
 
     if (data.isCaller) {
         setTimeout(() => {
-            currentCall = peer.call(data.partnerPeerId, localStream); 
+            currentCall = peer.call(data.partnerPeerId, localStream);
             handleCall(currentCall);
-        }, 1500); 
+        }, 1500);
     }
 });
 
@@ -86,21 +86,21 @@ peer.on('call', (call) => {
     if (currentCall) {
         currentCall.close();
     }
-    
-    currentCall = call; 
-    call.answer(localStream); 
+
+    currentCall = call;
+    call.answer(localStream);
     handleCall(call);
 });
 
 function handleCall(call) {
     call.on('stream', (remoteStream) => {
         console.log("✅ Remote stream received!");
-        
+
         // Remote Video Setup
         const remoteVid = document.getElementById('remoteVideo');
         if (remoteVid && remoteVid.srcObject !== remoteStream) {
             remoteVid.srcObject = remoteStream;
-            remoteVid.playsInline = true; 
+            remoteVid.playsInline = true;
             remoteVid.onloadedmetadata = () => {
                 remoteVid.play().catch(err => {
                     console.warn("Autoplay blocked:", err);
@@ -119,14 +119,14 @@ function handleCall(call) {
         }
     });
 
-   // Ye 'handleCall' function ke andar wala 'close' event hai, ise update karein
+    // Ye 'handleCall' function ke andar wala 'close' event hai, ise update karein
     call.on('close', () => {
         // Sirf tab jab partner call cut kare
-        if(currentCall) {
+        if (currentCall) {
             autoSearchAfterDisconnect();
         }
     });
-} 
+}
 
 // ========================================================
 // ====== CALL END & DISCONNECT HANDLING ========
@@ -134,44 +134,62 @@ function handleCall(call) {
 
 // 1. Jab User khud "End Call" button dabaye (Home page pe jayega)
 function endMyCall() {
-    socket.emit('call-ended'); 
-    
+    socket.emit('call-ended');
+
     if (currentCall) {
         const callToClose = currentCall;
         currentCall = null;
         callToClose.close();
     }
-    
+
     alert("You ended the call.");
     location.reload(); // Khud end kiya hai isliye wapas start pe bhejo
 }
 
+// ====== CANCEL SEARCH FUNCTION ======
+function cancelSearch() {
+    console.log("🚫 Canceling search...");
+    
+    // 1. Server ko batao ki search rok de
+    socket.emit('cancel-search');
+
+    // 2. UI Reset karo (Loading chupao, Home screen wapas lao)
+    document.getElementById('loading-ui').classList.add('hidden');
+    document.getElementById('home-content').classList.remove('hidden');
+
+    // 3. Agar camera on ho gaya tha, toh usko band kar do taaki light jalte na rahe
+    if (localStream) {
+        localStream.getTracks().forEach(track => track.stop());
+        localStream = null; 
+    }
+}
+
 // 2. Jab partner achanak leave kar de (Auto-Search me jayega)
 socket.on('partner-disconnected', () => {
-    if(currentCall){
-       autoSearchAfterDisconnect();
+    if (currentCall) {
+        autoSearchAfterDisconnect();
     }
 });
 
 // 3. Naya Function: Partner ke jane par wapas searching me lagana
 function autoSearchAfterDisconnect() {
     console.log("Partner left. Finding new match automatically...");
-    
+
     if (currentCall) {
         const callToClose = currentCall;
-        currentCall = null; 
-        callToClose.close(); 
+        currentCall = null;
+        callToClose.close();
     }
-    
+
     const remoteVid = document.getElementById('remoteVideo');
     if (remoteVid) remoteVid.srcObject = null;
 
     // UI Reset
     document.getElementById('video-ui').classList.add('hidden');
-    document.getElementById('chatBox').classList.add('hidden'); 
-    document.getElementById('home-content').classList.add('hidden'); 
-    document.getElementById('loading-ui').classList.remove('hidden'); 
-    document.getElementById('chat-messages').innerHTML = ''; 
+    document.getElementById('chatBox').classList.add('hidden');
+    document.getElementById('home-content').classList.add('hidden');
+    document.getElementById('loading-ui').classList.remove('hidden');
+    document.getElementById('chat-messages').innerHTML = '';
 
     // Automatically naya partner dhundo bina kuch press kiye
     setTimeout(() => {
@@ -185,14 +203,14 @@ function autoSearchAfterDisconnect() {
 // ====== SKIP PARTNER FUNCTION ======
 function skipPartner() {
     console.log("⏭️ Skipping to next partner...");
-    
+
     // ====== ANTI-SPAM (Button Disable Logic) ======
-    
-    const skipBtn = document.getElementById('skipBtn'); 
+
+    const skipBtn = document.getElementById('skipBtn');
     if (skipBtn) {
         skipBtn.disabled = true; // Button ko turant click hone se roko
         skipBtn.style.opacity = "0.5"; // Thoda dhundhla kar do taaki pata chale band hai
-        
+
         // 2 second (2000ms) baad button wapas normal kar do
         setTimeout(() => {
             skipBtn.disabled = false;
@@ -207,7 +225,7 @@ function skipPartner() {
         currentCall = null; // Important reset pehle
         callToClose.close(); // Call baad mein close karein
     }
-    
+
     // Server ko batao
     socket.emit('skip-partner');
 
@@ -217,10 +235,10 @@ function skipPartner() {
 
     // UI Reset karo (Chat band, loading shuru, video hide)
     document.getElementById('video-ui').classList.add('hidden');
-    document.getElementById('chatBox').classList.add('hidden'); 
-    document.getElementById('home-content').classList.add('hidden'); 
+    document.getElementById('chatBox').classList.add('hidden');
+    document.getElementById('home-content').classList.add('hidden');
     document.getElementById('loading-ui').classList.remove('hidden');
-    document.getElementById('chat-messages').innerHTML = ''; 
+    document.getElementById('chat-messages').innerHTML = '';
 
     // Thoda ruk kar wapas search shuru karo
     setTimeout(() => {
@@ -235,24 +253,24 @@ function skipPartner() {
 // Jab aapka partner aapse skip karke aage badh jaye
 socket.on('partner-skipped', () => {
     console.log("Partner skipped you. Finding new match automatically...");
-    
+
     // 1. Purani call aur connection properly close karo
     if (currentCall) {
         const callToClose = currentCall;
-        currentCall = null; 
-        callToClose.close(); 
+        currentCall = null;
+        callToClose.close();
     }
-    
+
     // 2. Remote video feed clear karo
     const remoteVid = document.getElementById('remoteVideo');
     if (remoteVid) remoteVid.srcObject = null;
 
     // 3. UI Reset karo (Chat band, loading shuru, video hide)
     document.getElementById('video-ui').classList.add('hidden');
-    document.getElementById('chatBox').classList.add('hidden'); 
+    document.getElementById('chatBox').classList.add('hidden');
     document.getElementById('home-content').classList.add('hidden'); // Ensure Home is hidden
     document.getElementById('loading-ui').classList.remove('hidden'); // Spinner dikhao
-    document.getElementById('chat-messages').innerHTML = ''; 
+    document.getElementById('chat-messages').innerHTML = '';
 
     // 4. Turant naya partner dhoondhna shuru karo
     // Note: Agar user form bharke andar aaya tha, toh level/username field se mil jayenge
@@ -267,14 +285,14 @@ socket.on('partner-skipped', () => {
 
 socket.on('partner-disconnected', () => {
     // Agar currently call me the tabhi alert aaye, skip ke time nahi
-    if(currentCall){
-       endCallProcess("Partner has left the platform.");
+    if (currentCall) {
+        endCallProcess("Partner has left the platform.");
     }
 });
 
 function endCallProcess(message) {
     alert(message);
-    location.reload(); 
+    location.reload();
 }
 
 socket.on('kicked-by-admin', () => {
@@ -307,10 +325,10 @@ function sendMessage() {
     if (message !== "") {
         // UI par apna message dikhana
         appendMessage('You', message, 'msg-sent');
-        
+
         // Server ko message bhejna
         socket.emit('send-message', message);
-        
+
         // Input clear karna
         input.value = "";
     }
@@ -320,12 +338,12 @@ function sendMessage() {
 socket.on('receive-message', (data) => {
     // Agar chat box band hai toh alert dikha sakte hain ya icon highlight kar sakte hain
     const chatBox = document.getElementById('chatBox');
-    if(chatBox.classList.contains('hidden')) {
+    if (chatBox.classList.contains('hidden')) {
         // Optional: Ek chota visual cue de sakte hain ki message aaya hai
         document.getElementById('chatToggleBtn').style.backgroundColor = '#ff758c';
         setTimeout(() => { document.getElementById('chatToggleBtn').style.backgroundColor = ''; }, 2000);
     }
-    
+
     appendMessage('Partner', data, 'msg-received');
 });
 
@@ -335,9 +353,9 @@ function appendMessage(sender, text, className) {
     const msgDiv = document.createElement('div');
     msgDiv.className = `msg-bubble ${className}`;
     msgDiv.innerText = text;
-    
+
     chatMessages.appendChild(msgDiv);
-    
+
     // Auto scroll bottom
     chatMessages.scrollTop = chatMessages.scrollHeight;
 }
@@ -348,7 +366,7 @@ const adminBtn = document.querySelector('.admin-icon-btn');
 if (adminBtn) {
     adminBtn.onclick = () => {
         const modal = document.getElementById('adminModal');
-        if(modal) modal.classList.remove('hidden');
+        if (modal) modal.classList.remove('hidden');
     };
 }
 
@@ -358,7 +376,7 @@ if (loginBtn) {
     loginBtn.onclick = () => {
         const pass = document.getElementById('adminPass').value;
         // Ab hum yahan check nahi karenge, seedha server ko bhejenge
-        socket.emit('admin-login-attempt', pass); 
+        socket.emit('admin-login-attempt', pass);
     };
 }
 
@@ -366,11 +384,11 @@ if (loginBtn) {
 socket.on('admin-login-success', () => {
     document.getElementById('adminModal').classList.add('hidden');
     const dashboard = document.getElementById('adminDashboard');
-    if(dashboard) dashboard.classList.remove('hidden');
-    
+    if (dashboard) dashboard.classList.remove('hidden');
+
     // Admin room me join ho jao
     const pass = document.getElementById('adminPass').value;
-    socket.emit('admin-join', pass); 
+    socket.emit('admin-join', pass);
 });
 
 // Jab server bole ki Password GALAT hai
@@ -380,23 +398,23 @@ socket.on('admin-login-failed', () => {
 
 // 1. Live Tiles Update
 socket.on('stats-update', (data) => {
-    if(document.getElementById('admin-total-online')) document.getElementById('admin-total-online').innerText = data.online;
-    if(document.getElementById('admin-active-calls')) document.getElementById('admin-active-calls').innerText = data.calls;
-    if(document.getElementById('admin-searching')) document.getElementById('admin-searching').innerText = data.totalSearching;
+    if (document.getElementById('admin-total-online')) document.getElementById('admin-total-online').innerText = data.online;
+    if (document.getElementById('admin-active-calls')) document.getElementById('admin-active-calls').innerText = data.calls;
+    if (document.getElementById('admin-searching')) document.getElementById('admin-searching').innerText = data.totalSearching;
 });
 
 // 2. Live Users Table Update (FIXED ID)
 socket.on('update-admin-list', (usersList) => {
-    const tbody = document.getElementById('admin-user-list'); 
-    if(!tbody) return;
-    
-    tbody.innerHTML = ''; 
-    
+    const tbody = document.getElementById('admin-user-list');
+    if (!tbody) return;
+
+    tbody.innerHTML = '';
+
     usersList.forEach((u, index) => {
         const tr = document.createElement('tr');
         const statusColor = u.inCall ? '#00b894' : '#d6a01e';
         const statusText = u.inCall ? 'In Call' : 'Searching';
-        
+
         tr.innerHTML = `
             <td>${u.username || 'Unknown'}</td>
             <td>${u.level || '-'}</td>
@@ -411,21 +429,21 @@ socket.on('update-admin-list', (usersList) => {
 
 // 3. Admin Kick Function
 window.kickUser = (socketId) => {
-    if(confirm("Are you sure you want to kick this user?")) {
+    if (confirm("Are you sure you want to kick this user?")) {
         socket.emit('kick-user', socketId);
     }
 };
 
 // 4. Activity Logs Update (FIXED ID)
 socket.on('new-log', (logData) => {
-    const logBox = document.getElementById('log-container'); 
-    if(!logBox) return;
+    const logBox = document.getElementById('log-container');
+    if (!logBox) return;
 
     const logItem = document.createElement('div');
     logItem.className = 'log-entry';
     logItem.innerHTML = `<span class="log-time">[${logData.time}]</span> <strong class="log-event">${logData.event}:</strong> ${logData.details}`;
-    
-    logBox.prepend(logItem); 
+
+    logBox.prepend(logItem);
 });
 
 // Front Page Live User Count
@@ -436,12 +454,12 @@ socket.on('updateUserCount', (count) => {
 
 function closeAdminModal() {
     const modal = document.getElementById('adminModal');
-    if(modal) modal.classList.add('hidden');
+    if (modal) modal.classList.add('hidden');
 }
 
 window.logoutAdmin = () => {
     const dashboard = document.getElementById('adminDashboard');
-    if(dashboard) dashboard.classList.add('hidden');
+    if (dashboard) dashboard.classList.add('hidden');
     location.reload();
 };
 
