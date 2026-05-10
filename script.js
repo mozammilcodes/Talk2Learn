@@ -149,7 +149,7 @@ function endMyCall() {
 // ====== CANCEL SEARCH FUNCTION ======
 function cancelSearch() {
     console.log("🚫 Canceling search...");
-    
+
     // 1. Server ko batao ki search rok de
     socket.emit('cancel-search');
 
@@ -160,7 +160,7 @@ function cancelSearch() {
     // 3. Agar camera on ho gaya tha, toh usko band kar do taaki light jalte na rahe
     if (localStream) {
         localStream.getTracks().forEach(track => track.stop());
-        localStream = null; 
+        localStream = null;
     }
 }
 
@@ -200,18 +200,17 @@ function autoSearchAfterDisconnect() {
         });
     }, 1500);
 }
+
 // ====== SKIP PARTNER FUNCTION ======
 function skipPartner() {
     console.log("⏭️ Skipping to next partner...");
 
     // ====== ANTI-SPAM (Button Disable Logic) ======
-
     const skipBtn = document.getElementById('skipBtn');
     if (skipBtn) {
-        skipBtn.disabled = true; // Button ko turant click hone se roko
-        skipBtn.style.opacity = "0.5"; // Thoda dhundhla kar do taaki pata chale band hai
+        skipBtn.disabled = true; 
+        skipBtn.style.opacity = "0.5"; 
 
-        // 2 second (2000ms) baad button wapas normal kar do
         setTimeout(() => {
             skipBtn.disabled = false;
             skipBtn.style.opacity = "1";
@@ -219,28 +218,23 @@ function skipPartner() {
     }
     // ==========================================================
 
-    // TRICK: Pehle call object ko null karo taaki reload wala event trigger na ho
     if (currentCall) {
         const callToClose = currentCall;
-        currentCall = null; // Important reset pehle
-        callToClose.close(); // Call baad mein close karein
+        currentCall = null; 
+        callToClose.close(); 
     }
 
-    // Server ko batao
     socket.emit('skip-partner');
 
-    // Remote video feed clear karo
     const remoteVid = document.getElementById('remoteVideo');
     if (remoteVid) remoteVid.srcObject = null;
 
-    // UI Reset karo (Chat band, loading shuru, video hide)
     document.getElementById('video-ui').classList.add('hidden');
     document.getElementById('chatBox').classList.add('hidden');
     document.getElementById('home-content').classList.add('hidden');
     document.getElementById('loading-ui').classList.remove('hidden');
     document.getElementById('chat-messages').innerHTML = '';
 
-    // Thoda ruk kar wapas search shuru karo
     setTimeout(() => {
         socket.emit('start-search', {
             name: document.getElementById('username').value,
@@ -254,37 +248,31 @@ function skipPartner() {
 socket.on('partner-skipped', () => {
     console.log("Partner skipped you. Finding new match automatically...");
 
-    // 1. Purani call aur connection properly close karo
     if (currentCall) {
         const callToClose = currentCall;
         currentCall = null;
         callToClose.close();
     }
 
-    // 2. Remote video feed clear karo
     const remoteVid = document.getElementById('remoteVideo');
     if (remoteVid) remoteVid.srcObject = null;
 
-    // 3. UI Reset karo (Chat band, loading shuru, video hide)
     document.getElementById('video-ui').classList.add('hidden');
     document.getElementById('chatBox').classList.add('hidden');
-    document.getElementById('home-content').classList.add('hidden'); // Ensure Home is hidden
-    document.getElementById('loading-ui').classList.remove('hidden'); // Spinner dikhao
+    document.getElementById('home-content').classList.add('hidden'); 
+    document.getElementById('loading-ui').classList.remove('hidden'); 
     document.getElementById('chat-messages').innerHTML = '';
 
-    // 4. Turant naya partner dhoondhna shuru karo
-    // Note: Agar user form bharke andar aaya tha, toh level/username field se mil jayenge
     setTimeout(() => {
         socket.emit('start-search', {
             name: document.getElementById('username').value,
             level: document.getElementById('level').value,
             peerId: myPeerId
         });
-    }, 1500); // Thoda time delay server sync ke liye
+    }, 1500); 
 });
 
 socket.on('partner-disconnected', () => {
-    // Agar currently call me the tabhi alert aaye, skip ke time nahi
     if (currentCall) {
         endCallProcess("Partner has left the platform.");
     }
@@ -311,7 +299,6 @@ function toggleChat() {
     }
 }
 
-// Enter key press karne par message send karna
 function handleKeyPress(e) {
     if (e.key === 'Enter') {
         sendMessage();
@@ -323,31 +310,21 @@ function sendMessage() {
     const message = input.value.trim();
 
     if (message !== "") {
-        // UI par apna message dikhana
         appendMessage('You', message, 'msg-sent');
-
-        // Server ko message bhejna
         socket.emit('send-message', message);
-
-        // Input clear karna
         input.value = "";
     }
 }
 
-// Jab dusre user se message aaye
 socket.on('receive-message', (data) => {
-    // Agar chat box band hai toh alert dikha sakte hain ya icon highlight kar sakte hain
     const chatBox = document.getElementById('chatBox');
     if (chatBox.classList.contains('hidden')) {
-        // Optional: Ek chota visual cue de sakte hain ki message aaya hai
         document.getElementById('chatToggleBtn').style.backgroundColor = '#ff758c';
         setTimeout(() => { document.getElementById('chatToggleBtn').style.backgroundColor = ''; }, 2000);
     }
-
     appendMessage('Partner', data, 'msg-received');
 });
 
-// UI par message add karne ka function
 function appendMessage(sender, text, className) {
     const chatMessages = document.getElementById('chat-messages');
     const msgDiv = document.createElement('div');
@@ -355,8 +332,6 @@ function appendMessage(sender, text, className) {
     msgDiv.innerText = text;
 
     chatMessages.appendChild(msgDiv);
-
-    // Auto scroll bottom
     chatMessages.scrollTop = chatMessages.scrollHeight;
 }
 
@@ -375,35 +350,29 @@ const loginBtn = document.getElementById('loginBtn');
 if (loginBtn) {
     loginBtn.onclick = () => {
         const pass = document.getElementById('adminPass').value;
-        // Ab hum yahan check nahi karenge, seedha server ko bhejenge
         socket.emit('admin-login-attempt', pass);
     };
 }
 
-// Jab server bole ki Password SAHI hai
 socket.on('admin-login-success', () => {
     document.getElementById('adminModal').classList.add('hidden');
     const dashboard = document.getElementById('adminDashboard');
     if (dashboard) dashboard.classList.remove('hidden');
 
-    // Admin room me join ho jao
     const pass = document.getElementById('adminPass').value;
     socket.emit('admin-join', pass);
 });
 
-// Jab server bole ki Password GALAT hai
 socket.on('admin-login-failed', () => {
     alert("Wrong Password! Access Denied. 🚫");
 });
 
-// 1. Live Tiles Update
 socket.on('stats-update', (data) => {
     if (document.getElementById('admin-total-online')) document.getElementById('admin-total-online').innerText = data.online;
     if (document.getElementById('admin-active-calls')) document.getElementById('admin-active-calls').innerText = data.calls;
     if (document.getElementById('admin-searching')) document.getElementById('admin-searching').innerText = data.totalSearching;
 });
 
-// 2. Live Users Table Update (FIXED ID)
 socket.on('update-admin-list', (usersList) => {
     const tbody = document.getElementById('admin-user-list');
     if (!tbody) return;
@@ -427,14 +396,12 @@ socket.on('update-admin-list', (usersList) => {
     });
 });
 
-// 3. Admin Kick Function
 window.kickUser = (socketId) => {
     if (confirm("Are you sure you want to kick this user?")) {
         socket.emit('kick-user', socketId);
     }
 };
 
-// 4. Activity Logs Update (FIXED ID)
 socket.on('new-log', (logData) => {
     const logBox = document.getElementById('log-container');
     if (!logBox) return;
@@ -446,7 +413,6 @@ socket.on('new-log', (logData) => {
     logBox.prepend(logItem);
 });
 
-// Front Page Live User Count
 socket.on('updateUserCount', (count) => {
     const liveText = document.getElementById('live-count-text');
     if (liveText) liveText.innerText = `${count} Students Online Practice Kar Rahe Hain`;
@@ -463,6 +429,16 @@ window.logoutAdmin = () => {
     location.reload();
 };
 
+// ====== ADMIN LOGIN ENTER KEY LOGIC ======
+const adminPassInput = document.getElementById('adminPass');
+if (adminPassInput) {
+    adminPassInput.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            document.getElementById('loginBtn').click(); // Enter dabate hi Login button click ho jayega
+        }
+    });
+}
+
 // ====== CONTROL BUTTONS ======
 function toggleAudio() {
     if (localStream) {
@@ -478,4 +454,300 @@ function toggleVideo() {
         localStream.getVideoTracks()[0].enabled = !enabled;
         document.getElementById('camBtn').innerHTML = !enabled ? "📷" : "🚫";
     }
+}
+
+// ==========================================================
+// ====== WHATSAPP STYLE: PIP DRAG & DROP + SWAP LOGIC ======
+// ==========================================================
+
+const localVidEl = document.getElementById('localVideo');
+const remoteVidEl = document.getElementById('remoteVideo');
+
+let isDragging = false;
+let startX, startY, initialLeft, initialTop;
+let hasMoved = false; 
+
+[localVidEl, remoteVidEl].forEach(vid => {
+    vid.addEventListener('mousedown', dragStart);
+    vid.addEventListener('touchstart', dragStart, { passive: false });
+    vid.addEventListener('click', handleTap);
+});
+
+window.addEventListener('mousemove', dragMove);
+window.addEventListener('mouseup', dragEnd);
+window.addEventListener('touchmove', dragMove, { passive: false });
+window.addEventListener('touchend', dragEnd);
+
+function dragStart(e) {
+    if (e.target.classList.contains('video-main')) return;
+
+    if (e.type === 'touchstart') {
+        startX = e.touches[0].clientX;
+        startY = e.touches[0].clientY;
+    } else {
+        startX = e.clientX;
+        startY = e.clientY;
+    }
+
+    const rect = e.target.getBoundingClientRect();
+    initialLeft = rect.left;
+    initialTop = rect.top;
+
+    e.target.style.setProperty('bottom', 'auto', 'important');
+    e.target.style.setProperty('right', 'auto', 'important');
+    e.target.style.setProperty('left', initialLeft + 'px', 'important');
+    e.target.style.setProperty('top', initialTop + 'px', 'important');
+
+    isDragging = true;
+    hasMoved = false;
+}
+
+function dragMove(e) {
+    if (!isDragging) return;
+
+    let currentX, currentY;
+    if (e.type === 'touchmove') {
+        currentX = e.touches[0].clientX;
+        currentY = e.touches[0].clientY;
+    } else {
+        currentX = e.clientX;
+        currentY = e.clientY;
+    }
+
+    let deltaX = currentX - startX;
+    let deltaY = currentY - startY;
+
+    if (Math.abs(deltaX) > 10 || Math.abs(deltaY) > 10) {
+        hasMoved = true;
+    }
+
+    let newLeft = initialLeft + deltaX;
+    let newTop = initialTop + deltaY;
+
+    const pip = document.querySelector('.video-pip');
+    if (pip) {
+        const maxX = window.innerWidth - pip.offsetWidth;
+        const maxY = window.innerHeight - pip.offsetHeight;
+
+        newLeft = Math.max(0, Math.min(newLeft, maxX));
+        newTop = Math.max(0, Math.min(newTop, maxY));
+
+        pip.style.setProperty('left', newLeft + 'px', 'important');
+        pip.style.setProperty('top', newTop + 'px', 'important');
+    }
+
+    if (e.cancelable) e.preventDefault();
+}
+
+function dragEnd(e) {
+    isDragging = false;
+}
+
+function handleTap(e) {
+    if (e.target.classList.contains('video-main')) return;
+    if (!hasMoved) {
+        swapVideos();
+    }
+}
+
+function swapVideos() {
+    const localVid = document.getElementById('localVideo');
+    const remoteVid = document.getElementById('remoteVideo');
+
+    if (localVid.classList.contains('video-pip')) {
+        localVid.classList.replace('video-pip', 'video-main');
+        remoteVid.classList.replace('video-main', 'video-pip');
+    } else {
+        localVid.classList.replace('video-main', 'video-pip');
+        remoteVid.classList.replace('video-pip', 'video-main');
+    }
+
+    localVid.style = "";
+    remoteVid.style = "";
+}
+
+socket.on('match-found', () => {
+    const local = document.getElementById('localVideo');
+    const remote = document.getElementById('remoteVideo');
+    if (local) {
+        local.className = 'video-pip';
+        local.style = '';
+    }
+    if (remote) {
+        remote.className = 'video-main';
+        remote.style = '';
+    }
+});
+
+// =========================================================
+// ====== LAPTOP ONLY: CHAT BOX DRAG & DROP LOGIC ======
+// =========================================================
+
+const chatBoxEl = document.getElementById('chatBox');
+const chatHeaderEl = chatBoxEl.querySelector('.chat-header');
+
+let isDraggingChat = false;
+let startXChat, startYChat, initialLeftChat, initialTopChat;
+
+if(chatHeaderEl) {
+    chatHeaderEl.addEventListener('mousedown', dragStartChat);
+}
+
+window.addEventListener('mousemove', dragMoveChat);
+window.addEventListener('mouseup', dragEndChat);
+
+function dragStartChat(e) {
+    if (chatBoxEl.classList.contains('hidden')) return;
+    if (e.button !== 0) return;
+
+    startXChat = e.clientX;
+    startYChat = e.clientY;
+
+    const rect = chatBoxEl.getBoundingClientRect();
+    initialLeftChat = rect.left;
+    initialTopChat = rect.top;
+
+    chatBoxEl.style.position = 'absolute';
+    chatBoxEl.style.left = initialLeftChat + 'px';
+    chatBoxEl.style.top = initialTopChat + 'px';
+    chatBoxEl.style.margin = '0'; 
+
+    isDraggingChat = true;
+}
+
+function dragMoveChat(e) {
+    if (!isDraggingChat) return;
+
+    let deltaX = e.clientX - startXChat;
+    let deltaY = e.clientY - startYChat;
+
+    let newLeft = initialLeftChat + deltaX;
+    let newTop = initialTopChat + deltaY;
+
+    const maxX = window.innerWidth - chatBoxEl.offsetWidth;
+    const maxY = window.innerHeight - chatBoxEl.offsetHeight;
+
+    newLeft = Math.max(0, Math.min(newLeft, maxX));
+    newTop = Math.max(0, Math.min(newTop, maxY));
+
+    chatBoxEl.style.left = newLeft + 'px';
+    chatBoxEl.style.top = newTop + 'px';
+}
+
+function dragEndChat() {
+    isDraggingChat = false;
+}
+
+// =========================================================
+// ====== NAYA: ADMIN CHAT MONITOR & VAULT LOGIC ======
+// =========================================================
+
+// 1. LIVE CHAT FEED
+socket.on('live-chat-update', (chat) => {
+    const chatFeed = document.getElementById('admin-chat-feed');
+    if (!chatFeed) return;
+
+    const placeholder = chatFeed.querySelector('p');
+    if (placeholder) placeholder.remove();
+
+    const entry = document.createElement('div');
+    entry.className = 'admin-chat-entry';
+    entry.innerHTML = `
+        <span class="chat-time">[${chat.time}]</span> 
+        <span class="chat-sender">${chat.sender}:</span> 
+        <span class="chat-text">${chat.text}</span>
+    `;
+    
+    chatFeed.prepend(entry);
+
+    if (chatFeed.children.length > 50) {
+        chatFeed.lastChild.remove();
+    }
+});
+
+// 2. VAULT: HISTORY LOAD KARNA
+window.loadChatHistory = () => {
+    const keywordInput = document.getElementById('searchChatKeyword');
+    const keyword = keywordInput ? keywordInput.value : "";
+    
+    const historyContainer = document.getElementById('history-results');
+    if (historyContainer) {
+        historyContainer.innerHTML = '<p style="text-align:center; color: #f1c40f; margin-top: 20px;">Fetching records from database...</p>';
+    }
+
+    socket.emit('request-chat-history', keyword);
+}
+
+// 3. VAULT: HISTORY MILNE PAR UI MEIN DIKHANA
+socket.on('chat-history-data', (chats) => {
+    const historyContainer = document.getElementById('history-results');
+    if (!historyContainer) return;
+
+    historyContainer.innerHTML = ''; 
+
+    if (chats.length === 0) {
+        historyContainer.innerHTML = '<p style="text-align:center; color: #747d8c; margin-top: 20px;">No chat records found.</p>';
+        return;
+    }
+
+    chats.forEach(chat => {
+        const timeStr = new Date(chat.timestamp).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
+        
+        const card = document.createElement('div');
+        card.className = 'history-card';
+        card.id = `chat-card-${chat._id}`; 
+        card.innerHTML = `
+            <div class="history-card-content">
+                <span class="history-time">${timeStr}</span>
+                <span class="history-sender">${chat.senderName}:</span>
+                <span class="history-text">"${chat.message}"</span>
+            </div>
+            <button class="history-del-btn" onclick="deleteSingleChat('${chat._id}')">🗑️ Delete</button>
+        `;
+        historyContainer.appendChild(card);
+    });
+});
+
+// 4. VAULT: SINGLE CHAT DELETE KARNA
+window.deleteSingleChat = (chatId) => {
+    if (confirm("Are you sure you want to delete this specific message permanently?")) {
+        const card = document.getElementById(`chat-card-${chatId}`);
+        if (card) {
+            card.style.opacity = '0.5';
+            card.innerText = 'Deleting...';
+        }
+        socket.emit('delete-single-chat', chatId);
+    }
+}
+
+// 5. VAULT: CLEAR ALL CHATS (CLEANUP)
+window.deleteAllChats = () => {
+    const keywordInput = document.getElementById('searchChatKeyword');
+    if (keywordInput && keywordInput.value !== "") {
+         alert("Please clear the search box before deleting all chats to avoid confusion.");
+         return;
+    }
+
+    if (confirm("⚠️ WARNING: This will permanently delete ALL chat history from the database. Are you sure?")) {
+        const historyContainer = document.getElementById('history-results');
+        if (historyContainer) {
+            historyContainer.innerHTML = '<p style="text-align:center; color: #e84118; margin-top: 20px;">Deleting entire database... Please wait.</p>';
+        }
+        socket.emit('delete-all-chats');
+    }
+}
+
+// 6. VAULT: DELETE SUCCESS MESSAGE
+socket.on('chat-delete-success', () => {
+    loadChatHistory(); 
+});
+
+// ====== SEARCH BOX ENTER KEY LOGIC ======
+const searchInputEl = document.getElementById('searchChatKeyword');
+if(searchInputEl) {
+    searchInputEl.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            loadChatHistory(); // Enter dabate hi search shuru
+        }
+    });
 }

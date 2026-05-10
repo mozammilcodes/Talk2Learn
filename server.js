@@ -1,4 +1,36 @@
+require('dotenv').config();
 const express = require('express');
+const mongoose = require('mongoose');
+
+// ====== DATABASE CONNECTION (Direct TCP - Network Bypass) ======
+const MONGO_URI = process.env.MONGO_URI;
+
+mongoose.connect(MONGO_URI)
+.then(() => {
+    console.log("✅ MongoDB Connected Successfully!");
+}).catch((err) => {
+    console.error("❌ MongoDB Connection Error: ", err.message);
+});
+
+// ====== DATABASE SCHEMAS (Data ka Structure) ======
+
+// 1. Admin Logs ke liye structure
+const logSchema = new mongoose.Schema({
+    event: String,
+    details: String,
+    time: String,
+    timestamp: { type: Date, default: Date.now }
+});
+const AdminLog = mongoose.model('AdminLog', logSchema);
+
+// 2. Chat Messages ke liye structure
+const chatSchema = new mongoose.Schema({
+    senderName: String,
+    message: String,
+    timestamp: { type: Date, default: Date.now }
+});
+const ChatMsg = mongoose.model('ChatMsg', chatSchema);
+
 const app = express();
 const http = require('http').createServer(app);
 const io = require('socket.io')(http, { cors: { origin: "*" } });
@@ -6,7 +38,6 @@ const io = require('socket.io')(http, { cors: { origin: "*" } });
 // ====== STATE MANAGEMENT ======
 let users = {};
 let activeCalls = 0;
-const ADMIN_PASSWORD = "1234"; // Setup for your login
 
 app.use(express.static(__dirname));
 
@@ -21,30 +52,66 @@ function sendStatsToAdmin() {
     io.to('admin-room').emit('update-admin-list', Object.values(users));
 }
 
+// ====== NAYA: SMART HELPER FUNCTION ======
+async function logToAdminAndDB(eventName, detailsText) {
+    const timeStr = new Date().toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata' });
+    
+    io.to('admin-room').emit('new-log', {
+        event: eventName,
+        details: detailsText,
+        time: timeStr
+    });
+
+    try {
+        const dbLog = new AdminLog({
+            event: eventName,
+            details: detailsText,
+            time: timeStr
+        });
+        await dbLog.save();
+    } catch (error) {
+        console.error("❌ Log save error:", error.message);
+    }
+}
+
 io.on('connection', (socket) => {
     console.log('New connection established:', socket.id);
 
-    // FIX: Naya user aate hi frontpage counter update karo
+    // Frontpage counter update karo
     socket.emit('updateUserCount', Object.keys(users).length);
 
-    socket.on('admin-join', (passcode) => {
+    // Activity save karo jab koi naya connection aaye
+    logToAdminAndDB("User Joined", `Naya student connect hua. ID: ${socket.id}`);
+
+    const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "1234";
+
+    // ====== ADMIN LOGIN & HISTORY LOAD ======
+    socket.on('admin-join', async (passcode) => {
         if (passcode === ADMIN_PASSWORD) {
             socket.join('admin-room');
             sendStatsToAdmin();
 
-            socket.emit('new-log', {
-                event: "Admin Access",
-                details: "Authorized successfully",
-               time: new Date().toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata' })
-            });
+            // MONGODB SE PURANI HISTORY NIKALNA
+            try {
+                let history = await AdminLog.find().sort({ timestamp: -1 }).limit(50);
+                history = history.reverse();
+
+                history.forEach(log => {
+                    socket.emit('new-log', {
+                        event: log.event,
+                        details: log.details,
+                        time: log.time
+                    });
+                });
+            } catch (err) {
+                console.error("History nikalne me error:", err.message);
+            }
+
+            logToAdminAndDB("Admin Access", "Authorized successfully");
         } else {
             socket.emit('admin-error', 'Incorrect Password!');
         }
     });
-
-    // ====== SECURE ADMIN LOGIN CHECK ======
-    // process.env.ADMIN_PASSWORD ka matlab hai "Tijori se password nikalo"
-    const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "1234";
 
     socket.on('admin-login-attempt', (password) => {
         if (password === ADMIN_PASSWORD) {
@@ -54,34 +121,69 @@ io.on('connection', (socket) => {
         }
     });
 
+    // ====== NAYA: CHAT HISTORY MANGWANA ======
+    socket.on('request-chat-history', async (keyword = "") => {
+        try {
+            let query = {};
+            if (keyword && keyword.trim() !== "") {
+                const searchRegex = new RegExp(keyword, 'i');
+                query = {
+                    $or: [
+                        { senderName: searchRegex },
+                        { message: searchRegex }
+                    ]
+                };
+            }
+            let chats = await ChatMsg.find(query).sort({ timestamp: -1 }).limit(100);
+            socket.emit('chat-history-data', chats);
+        } catch (err) {
+            console.error("Chat history fetch error:", err.message);
+        }
+    });
+
+    // ====== NAYA: EK SINGLE CHAT DELETE KARNA ======
+    socket.on('delete-single-chat', async (chatId) => {
+        try {
+            await ChatMsg.findByIdAndDelete(chatId);
+            logToAdminAndDB("Chat Deleted", `Admin deleted a specific chat message (ID: ${chatId})`);
+            socket.emit('chat-delete-success');
+        } catch (err) {
+            console.error("Single chat delete error:", err.message);
+        }
+    });
+
+    // ====== NAYA: SAARE CHATS DELETE KARNA (CLEANUP) ======
+    socket.on('delete-all-chats', async () => {
+        try {
+            await ChatMsg.deleteMany({});
+            logToAdminAndDB("Database Cleanup", "Admin deleted ALL chat history");
+            socket.emit('chat-delete-success');
+        } catch (err) {
+            console.error("All chats delete error:", err.message);
+        }
+    });
+
+    // ====== MATCHING LOGIC ======
     socket.on('start-search', (userData) => {
-        // NAYI LINE: Agar user pehle se call mein hai, toh use dobara search mat karne do
         if (users[socket.id] && users[socket.id].inCall === true) return;
 
-        // ... aapka baaki ka purana code niche waise hi rahega ...
         const previousPartnerId = users[socket.id] ? users[socket.id].lastPartner : null;
-        // ...
+        
         users[socket.id] = {
             id: socket.id,
             username: userData.name,
             level: userData.level,
             peerId: userData.peerId,
             partnerId: null,
-            lastPartner: previousPartnerId, // NAYA: Purane partner ko yaad rakho
+            lastPartner: previousPartnerId,
             inCall: false
         };
 
         io.emit('updateUserCount', Object.keys(users).length);
-
-        io.to('admin-room').emit('new-log', {
-            event: "Search Started",
-            details: `${userData.name} (Level: ${userData.level}) is searching`,
-           time: new Date().toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata' })
-        });
-
         sendStatsToAdmin();
 
-        // NAYA MATCHING LOGIC: Purane partner ko ignore karo
+        logToAdminAndDB("Search Started", `${userData.name} (Level: ${userData.level}) is searching`);
+
         let partner = Object.values(users).find(u =>
             u.id !== socket.id &&
             u.level === userData.level &&
@@ -92,11 +194,11 @@ io.on('connection', (socket) => {
         if (partner) {
             users[socket.id].inCall = true;
             users[socket.id].partnerId = partner.id;
-            users[socket.id].lastPartner = partner.id; // Record current partner
+            users[socket.id].lastPartner = partner.id;
 
             users[partner.id].inCall = true;
             users[partner.id].partnerId = socket.id;
-            users[partner.id].lastPartner = socket.id; // Record current partner
+            users[partner.id].lastPartner = socket.id;
 
             activeCalls++;
 
@@ -111,46 +213,51 @@ io.on('connection', (socket) => {
                 partnerName: userData.name
             });
 
-            io.to('admin-room').emit('new-log', {
-                event: "Match Success",
-                details: `${userData.name} matched with ${partner.username}`,
-               time: new Date().toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata' })
-            });
+            logToAdminAndDB("Match Success", `${userData.name} matched with ${partner.username}`);
 
             io.emit('update-active-calls', activeCalls);
             sendStatsToAdmin();
         }
     });
 
-    // ====== CANCEL SEARCH LOGIC ======
     socket.on('cancel-search', () => {
         const user = users[socket.id];
-        
-        // Agar user sach mein search kar raha tha (call mein nahi tha)
         if (user && !user.inCall) {
-            
-            // Admin log ke liye record karo
-            io.to('admin-room').emit('new-log', {
-                event: "Search Cancelled",
-                details: `${user.username} cancelled the search`,
-               time: new Date().toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata' })
-            });
-
-            // User ko waiting list (users object) se hata do
+            logToAdminAndDB("Search Cancelled", `${user.username} cancelled the search`);
             delete users[socket.id];
-
-            // Sabhi jagah counter update kar do
+            
             io.emit('updateUserCount', Object.keys(users).length);
             sendStatsToAdmin();
         }
     });
 
-    //  CHAT MESSAGES
-
-    socket.on('send-message', (msg) => {
+    // ====== CHAT MESSAGES WITH DB SAVE & LIVE FEED ======
+    socket.on('send-message', async (msg) => {
         const user = users[socket.id];
+        
         if (user && user.partnerId) {
             io.to(user.partnerId).emit('receive-message', msg);
+        }
+
+        try {
+            const senderName = user ? user.username : "Unknown_" + socket.id.substring(0, 4);
+            const newChat = new ChatMsg({
+                senderName: senderName,
+                message: msg
+            });
+            const savedChat = await newChat.save();
+            console.log("📝 Chat saved to DB:", msg);
+
+            // Live Chat Dashboard par bhejo
+            const timeStr = new Date(savedChat.timestamp).toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata' });
+            io.to('admin-room').emit('live-chat-update', {
+                sender: senderName,
+                text: msg,
+                time: timeStr
+            });
+
+        } catch (error) {
+            console.error("❌ Chat save error:", error.message);
         }
     });
 
@@ -170,24 +277,18 @@ io.on('connection', (socket) => {
 
             activeCalls = Math.max(0, activeCalls - 1);
 
-            io.to('admin-room').emit('new-log', {
-                event: "Call Ended",
-                details: `Call involving ${user.username} ended`,
-               time: new Date().toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata' })
-            });
+            logToAdminAndDB("Call Ended", `Call involving ${user.username} ended`);
 
             io.emit('update-active-calls', activeCalls);
             sendStatsToAdmin();
         }
     });
 
-    // ====== FIXED: SKIP PARTNER LOGIC ======
     socket.on('skip-partner', () => {
         const user = users[socket.id];
         if (user && user.inCall) {
             const partnerId = user.partnerId;
 
-            // Dono ko 'inCall' se free karo
             user.inCall = false;
             user.partnerId = null;
 
@@ -197,16 +298,11 @@ io.on('connection', (socket) => {
                 io.to(partnerId).emit('partner-skipped');
             }
 
-            // CRITICAL FIX: Ensure activeCalls kabhi minus me na jaye
             if (activeCalls > 0) {
                 activeCalls--;
             }
 
-            io.to('admin-room').emit('new-log', {
-                event: "Skipped",
-                details: `${user.username} skipped to next partner`,
-               time: new Date().toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata' })
-            });
+            logToAdminAndDB("Skipped", `${user.username} skipped to next partner`);
 
             io.emit('update-active-calls', activeCalls);
             sendStatsToAdmin();
@@ -218,11 +314,7 @@ io.on('connection', (socket) => {
         if (targetSocket) {
             const kickedUsername = users[id] ? users[id].username : id;
 
-            io.to('admin-room').emit('new-log', {
-                event: "Admin Action",
-                details: `User ${kickedUsername} was kicked by admin`,
-               time: new Date().toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata' })
-            });
+            logToAdminAndDB("Admin Action", `User ${kickedUsername} was kicked by admin`);
 
             targetSocket.emit('kicked-by-admin');
             targetSocket.disconnect();
@@ -233,11 +325,7 @@ io.on('connection', (socket) => {
         const user = users[socket.id];
 
         if (user) {
-            io.to('admin-room').emit('new-log', {
-                event: "User Disconnect",
-                details: `${user.username || socket.id} left the platform`,
-               time: new Date().toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata' })
-            });
+            logToAdminAndDB("User Disconnect", `${user.username || socket.id} left the platform`);
 
             if (user.partnerId) {
                 const partnerId = user.partnerId;
@@ -248,7 +336,6 @@ io.on('connection', (socket) => {
                     users[partnerId].partnerId = null;
                 }
 
-                // CRITICAL FIX
                 if (activeCalls > 0) {
                     activeCalls--;
                 }

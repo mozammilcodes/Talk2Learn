@@ -127,20 +127,20 @@
             </div>
         </section>
     </div>
-<div id="loading-ui" class="hidden"
+    
+    <div id="loading-ui" class="hidden"
         style="height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; background: var(--bg); position: fixed; top: 0; left: 0; width: 100vw; z-index: 5000;">
         <div class="spinner"></div>
         <h2 style="margin-top: 20px; color: var(--primary);">Searching for a partner... 🔍</h2>
         <p>Please wait while we match you with another student.</p>
         
-        <!-- CANCEL BUTTON -->
         <button onclick="cancelSearch()" style="margin-top: 25px; background: #ff4d4d; color: white; border: none; padding: 12px 30px; border-radius: 25px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 10px rgba(255, 77, 77, 0.3);">Cancel Search ✖</button>
     </div>
 
     <div id="video-ui" class="hidden">
         <div class="video-container">
-            <video id="remoteVideo" autoplay playsinline></video>
-            <video id="localVideo" autoplay muted playsinline></video>
+        <video id="remoteVideo" class="video-main" autoplay playsinline></video>
+        <video id="localVideo" class="video-pip" autoplay muted playsinline></video>
             <div class="controls">
                 <button onclick="toggleAudio()" id="micBtn" class="control-btn">🎤</button>
                 <button onclick="toggleVideo()" id="camBtn" class="control-btn">📷</button>
@@ -177,6 +177,25 @@
         </div>
     </div>
 
+    <div id="chatHistoryModal" class="modal hidden" style="z-index: 6000;">
+        <div class="modal-content" style="max-width: 800px; width: 90%;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <h3>🗄️ Chat History Vault</h3>
+                <button onclick="document.getElementById('chatHistoryModal').classList.add('hidden')" style="background: #ff4d4d; color: white; border: none; padding: 5px 15px; border-radius: 5px; cursor: pointer; font-weight: bold;">✖ Close</button>
+            </div>
+            
+            <div class="cleanup-controls" style="margin-bottom: 15px; padding: 15px; background: #f1f2f6; border-radius: 8px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                <input type="text" id="searchChatKeyword" placeholder="Search by name or message..." style="padding: 10px; border-radius: 5px; border: 1px solid #ccc; flex: 1; min-width: 200px;">
+                <button onclick="loadChatHistory()" style="background: #2ed573; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-weight: bold;">🔄 Refresh/Search</button>
+                <button onclick="deleteAllChats()" style="background: #ff4757; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-weight: bold;">🗑️ Clear All Chats</button>
+            </div>
+
+            <div id="history-results" style="background: #1e272e; padding: 15px; border-radius: 8px; height: 400px; overflow-y: auto; color: #fff; font-family: monospace;">
+                <p style="text-align:center; color: #747d8c; margin-top: 20px;">Loading database records...</p>
+            </div>
+        </div>
+    </div>
+
     <div id="adminDashboard" class="admin-panel hidden">
         <div class="panel-header">
             <h2>🛠️ Live Monitor Dashboard</h2>
@@ -193,12 +212,25 @@
                 <h3 id="admin-searching">0</h3>
             </div>
         </div>
-        <div class="admin-main-grid">
+        
+        <div class="admin-main-grid" style="grid-template-columns: 1fr 1fr;">
+            
             <div class="log-section">
                 <h3>Activity Feed (Live)</h3>
                 <div id="log-container" class="log-feed"></div>
             </div>
-            <div class="user-list-section">
+
+            <div class="chat-monitor-section">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                    <h3 style="margin: 0;">Live Chats 💬</h3>
+                    <button onclick="document.getElementById('chatHistoryModal').classList.remove('hidden'); loadChatHistory();" style="background: #ffb142; color: #fff; border: none; padding: 5px 15px; border-radius: 20px; cursor: pointer; font-weight: bold; font-size: 0.9em; box-shadow: 0 2px 5px rgba(0,0,0,0.2);">🗄️ Vault & Delete</button>
+                </div>
+                <div id="admin-chat-feed" class="log-feed" style="background: #2f3640; border-left: 4px solid #3498db;">
+                    <p style="color: #7f8fa6; font-size: 0.9em; text-align: center; margin-top: 10px;">Waiting for messages...</p>
+                </div>
+            </div>
+
+            <div class="user-list-section" style="grid-column: 1 / -1;">
                 <h3>Connected Students</h3>
                 <table>
                     <thead>

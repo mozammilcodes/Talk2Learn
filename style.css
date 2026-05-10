@@ -466,34 +466,56 @@ th {
     overflow: hidden;
 }
 
-/* Remote Video (Samne wale ka camera) */
-#remoteVideo {
+/* ====== WHATSAPP STYLE VIDEO UI ====== */
+
+/* Main Video (Badi Video) */
+.video-main {
     position: absolute;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
     object-fit: cover;
-    /* Black bars hatane ke liye */
     z-index: 1001;
+    background: #000;
 }
 
-/* Local Video  - Desktop Default */
-#localVideo {
+/* PIP Video (Chhoti Video) */
+.video-pip {
     position: absolute;
     z-index: 1002;
-    /* Sabse upar dikhane ke liye */
     object-fit: cover;
     border: 2px solid white;
     border-radius: 12px;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
     background: #222;
-
-    /* Desktop ke liye size aur position */
+    cursor: grab;
+    
+    /* Default Sizes (Laptop) */
     width: 200px;
     height: 150px;
-    top: 20px;
+    
+    /* Default Position (Bottom Right) */
+    bottom: 100px;
     right: 20px;
+    
+    /* Important: reset top/left for default state */
+    top: auto !important; 
+    left: auto !important;
+}
+
+.video-pip:active {
+    cursor: grabbing;
+}
+
+/* Mobile View adjustments for PIP */
+@media (max-width: 768px) {
+    .video-pip {
+        width: 110px;
+        height: 150px;
+        bottom: 90px;
+        right: 15px;
+    }
 }
 
 /* ====== CONTROLS (Mic, Camera, End Call) ====== */
@@ -556,6 +578,12 @@ th {
     justify-content: space-between;
     align-items: center;
     font-weight: bold;
+    cursor: grab; /* Batayega ki ise pakad kar khiskaya ja sakta hai */
+    user-select: none; /* Dragging ke dauran andar ka text select na ho */
+}
+/* Jab header pakda hua ho */
+.chat-header:active {
+    cursor: grabbing;
 }
 
 .chat-header button {
@@ -638,16 +666,7 @@ th {
 /* ========================================= */
 @media (max-width: 768px) {
 
-    /* Mobile me aapka camera chota aur niche dikhega */
-    #localVideo {
-        width: 110px;
-        height: 150px;
-        top: auto;
-        /* Top se hata kar bottom me set kar rahe hain */
-        bottom: 100px;
-        /* Buttons ke theek upar */
-        right: 15px;
-    }
+    
 
     .controls {
         bottom: 20px;
@@ -786,7 +805,7 @@ table {
 }
 
 /* Log Feed Styling */
-.log-section {
+.log-section, .chat-monitor-section {
     background: white;
     padding: 20px;
     border-radius: 12px;
@@ -1141,95 +1160,6 @@ th {
     font-size: 0.9rem;
 }
 
-/* Smooth Scroll CSS Fix */
-html {
-    scroll-behavior: smooth;
-}
-
-/* ========================================= */
-/* ====== SUPER LIGHTWEIGHT ANIMATIONS ===== */
-/* ========================================= */
-
-/* 1. Live Gradient Background for Hero Section */
-.hero-section {
-    background: linear-gradient(-45deg, #ff758c, #ff7eb3, #ff9a9e, #fecfef);
-    background-size: 400% 400%;
-    animation: gradientMove 10s ease infinite;
-    position: relative;
-    overflow: hidden;
-}
-
-@keyframes gradientMove {
-    0% {
-        background-position: 0% 50%;
-    }
-
-    50% {
-        background-position: 100% 50%;
-    }
-
-    100% {
-        background-position: 0% 50%;
-    }
-}
-
-/* 2. Floating Effect for Practice Card & Features */
-
-.practice-card {
-    animation: floatSmooth 6s ease-in-out infinite;
-}
-
-.feature-card:nth-child(1) {
-    animation: floatSmooth 5s ease-in-out infinite 0.5s;
-}
-
-.feature-card:nth-child(2) {
-    animation: floatSmooth 6s ease-in-out infinite 1s;
-}
-
-.feature-card:nth-child(3) {
-    animation: floatSmooth 5.5s ease-in-out infinite 1.5s;
-}
-
-@keyframes floatSmooth {
-    0% {
-        transform: translateY(0px);
-    }
-
-    50% {
-        transform: translateY(-12px);
-    }
-
-    100% {
-        transform: translateY(0px);
-    }
-}
-
-/* 3. Glowing Button Effect for "Find Partner" */
-#startBtn {
-    box-shadow: 0 4px 15px rgba(255, 117, 140, 0.4);
-    transition: all 0.3s ease;
-}
-
-#startBtn:hover {
-    box-shadow: 0 8px 25px rgba(255, 117, 140, 0.8);
-    transform: translateY(-3px) scale(1.02);
-}
-
-/* 4. Scroll Reveal Animations (Already added in HTML, enhancing them here) */
-.fade-in-up {
-    opacity: 0;
-    transform: translateY(30px);
-    transition: opacity 0.8s cubic-bezier(0.25, 1, 0.5, 1), transform 0.8s cubic-bezier(0.25, 1, 0.5, 1);
-    will-change: opacity, transform;
-    /* Browser ko pehle se bata dega for better performance */
-}
-
-.fade-in-up.visible {
-    opacity: 1;
-    transform: translateY(0);
-}
-
 /* Smooth Navigation Link Hover */
 .nav-links a {
     position: relative;
@@ -1248,4 +1178,56 @@ html {
 
 .nav-links a:hover::after {
     width: 100%;
+}
+
+
+/* ========================================= */
+/* ====== NAYA: ADMIN CHAT & VAULT STYLES == */
+/* ========================================= */
+
+/* Live Chat Feed specific styles */
+.admin-chat-entry {
+    margin-bottom: 10px;
+    padding: 8px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 6px;
+    border-left: 3px solid #ff758c;
+    line-height: 1.5;
+}
+.chat-time { color: #f1c40f; margin-right: 8px; font-size: 0.8em; }
+.chat-sender { color: #00a8ff; font-weight: bold; margin-right: 5px; }
+.chat-text { color: #ecf0f1; }
+
+/* Vault History Cards */
+.history-card {
+    background: #2f3640;
+    border-left: 4px solid #e1b12c;
+    padding: 12px;
+    margin-bottom: 10px;
+    border-radius: 5px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    text-align: left;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+}
+.history-card-content { flex: 1; }
+.history-time { color: #f1c40f; font-size: 0.8em; margin-bottom: 4px; display: block;}
+.history-sender { color: #00a8ff; font-weight: bold; }
+.history-text { color: #ecf0f1; margin-left: 5px; }
+
+.history-del-btn {
+    background: #e84118;
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-left: 15px;
+    font-weight: bold;
+    transition: 0.2s;
+}
+.history-del-btn:hover {
+    background: #c23616;
+    transform: scale(1.05);
 }

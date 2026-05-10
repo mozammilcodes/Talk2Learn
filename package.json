@@ -20,7 +20,9 @@
   },
   "homepage": "https://github.com/mozammilcodes/Talk2Learn#readme",
   "dependencies": {
+    "dotenv": "^17.4.2",
     "express": "^5.2.1",
+    "mongoose": "^9.6.2",
     "socket.io": "^4.8.3"
   }
 }
