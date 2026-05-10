@@ -642,7 +642,7 @@ function dragEndChat() {
 // ====== NAYA: ADMIN CHAT MONITOR & VAULT LOGIC ======
 // =========================================================
 
-// 1. LIVE CHAT FEED
+// 1. LIVE CHAT FEED (Kisme Kisko Message Bheja)
 socket.on('live-chat-update', (chat) => {
     const chatFeed = document.getElementById('admin-chat-feed');
     if (!chatFeed) return;
@@ -652,9 +652,10 @@ socket.on('live-chat-update', (chat) => {
 
     const entry = document.createElement('div');
     entry.className = 'admin-chat-entry';
+    // NAYA: Sender ➔ Receiver format
     entry.innerHTML = `
         <span class="chat-time">[${chat.time}]</span> 
-        <span class="chat-sender">${chat.sender}:</span> 
+        <span class="chat-sender" style="color:#00cec9;">${chat.sender} ➔ ${chat.receiver}:</span> 
         <span class="chat-text">${chat.text}</span>
     `;
     
@@ -672,13 +673,13 @@ window.loadChatHistory = () => {
     
     const historyContainer = document.getElementById('history-results');
     if (historyContainer) {
-        historyContainer.innerHTML = '<p style="text-align:center; color: #f1c40f; margin-top: 20px;">Fetching records from database...</p>';
+        historyContainer.innerHTML = '<p style="text-align:center; color: #f1c40f; margin-top: 20px;">Fetching and organizing records...</p>';
     }
 
     socket.emit('request-chat-history', keyword);
 }
 
-// 3. VAULT: HISTORY MILNE PAR UI MEIN DIKHANA
+// 3. VAULT: HISTORY KO "FOLDER" KI TARAH DIKHANA
 socket.on('chat-history-data', (chats) => {
     const historyContainer = document.getElementById('history-results');
     if (!historyContainer) return;
@@ -690,33 +691,67 @@ socket.on('chat-history-data', (chats) => {
         return;
     }
 
+    // Chats ko Session/Pair ke hisaab se group (folder) banana
+    const groupedChats = {};
     chats.forEach(chat => {
-        const timeStr = new Date(chat.timestamp).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
-        
-        const card = document.createElement('div');
-        card.className = 'history-card';
-        card.id = `chat-card-${chat._id}`; 
-        card.innerHTML = `
-            <div class="history-card-content">
-                <span class="history-time">${timeStr}</span>
-                <span class="history-sender">${chat.senderName}:</span>
-                <span class="history-text">"${chat.message}"</span>
-            </div>
-            <button class="history-del-btn" onclick="deleteSingleChat('${chat._id}')">🗑️ Delete</button>
-        `;
-        historyContainer.appendChild(card);
+        const sId = chat.sessionId || "Unknown_Session";
+        if(!groupedChats[sId]) {
+            groupedChats[sId] = { participants: new Set(), messages: [] };
+        }
+        groupedChats[sId].participants.add(chat.senderName);
+        if(chat.receiverName && chat.receiverName !== "Unknown") {
+            groupedChats[sId].participants.add(chat.receiverName);
+        }
+        groupedChats[sId].messages.push(chat);
     });
+
+    // Har group ko ek Folder ki tarah render karna
+    for (const [sId, groupData] of Object.entries(groupedChats)) {
+        let pairName = Array.from(groupData.participants).join(" & ");
+        if(pairName === "") pairName = "Unknown Pair";
+
+        const folder = document.createElement('div');
+        folder.className = 'history-folder';
+        folder.id = `session-folder-${sId}`;
+
+        let msgsHTML = '';
+        groupData.messages.forEach(msg => {
+            const timeStr = new Date(msg.timestamp).toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour:'2-digit', minute:'2-digit' });
+            msgsHTML += `
+                <div class="folder-msg-line">
+                    <span class="chat-time" style="font-size:0.8em; color:#f1c40f;">[${timeStr}]</span> 
+                    <span style="color:#00a8ff; font-weight:bold;">${msg.senderName}:</span> 
+                    <span style="color:#ecf0f1;">"${msg.message}"</span>
+                </div>
+            `;
+        });
+
+        folder.innerHTML = `
+            <div class="folder-header">
+                <span class="folder-title">📁 Pair: ${pairName}</span>
+                <button class="history-del-btn" onclick="deleteSession('${sId}')">🗑️ Delete Full Conversation</button>
+            </div>
+            <div class="folder-messages">
+                ${msgsHTML}
+            </div>
+        `;
+        
+        // Latest folders upar dikhe
+        historyContainer.prepend(folder);
+    }
 });
 
-// 4. VAULT: SINGLE CHAT DELETE KARNA
-window.deleteSingleChat = (chatId) => {
-    if (confirm("Are you sure you want to delete this specific message permanently?")) {
-        const card = document.getElementById(`chat-card-${chatId}`);
-        if (card) {
-            card.style.opacity = '0.5';
-            card.innerText = 'Deleting...';
-        }
-        socket.emit('delete-single-chat', chatId);
+// 4. VAULT: POORA FOLDER (SESSION) DELETE KARNA
+window.deleteSession = (sessionId) => {
+    if(sessionId === "NO_SESSION" || sessionId === "Unknown_Session") {
+       alert("In purani chats ko ek sath delete nahi kiya ja sakta. Kripya 'Clear All' ka use karein."); 
+       return;
+    }
+    
+    if (confirm("Are you sure you want to delete this ENTIRE conversation between these two students?")) {
+        const folder = document.getElementById(`session-folder-${sessionId}`);
+        if (folder) folder.style.opacity = '0.5';
+        socket.emit('delete-session', sessionId);
     }
 }
 

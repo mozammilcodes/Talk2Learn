@@ -23,9 +23,11 @@ const logSchema = new mongoose.Schema({
 });
 const AdminLog = mongoose.model('AdminLog', logSchema);
 
-// 2. Chat Messages ke liye structure
+// 2. Chat Messages ke liye structure (Naya Folder System)
 const chatSchema = new mongoose.Schema({
+    sessionId: String,
     senderName: String,
+    receiverName: String,
     message: String,
     timestamp: { type: Date, default: Date.now }
 });
@@ -130,39 +132,66 @@ io.on('connection', (socket) => {
                 query = {
                     $or: [
                         { senderName: searchRegex },
+                        { receiverName: searchRegex },
                         { message: searchRegex }
                     ]
                 };
             }
-            let chats = await ChatMsg.find(query).sort({ timestamp: -1 }).limit(100);
+            // Chats ko time ke hisaab se order mein nikalo taaki folder me sequence sahi rahe
+            let chats = await ChatMsg.find(query).sort({ timestamp: 1 }).limit(300);
             socket.emit('chat-history-data', chats);
         } catch (err) {
             console.error("Chat history fetch error:", err.message);
         }
     });
 
-    // ====== NAYA: EK SINGLE CHAT DELETE KARNA ======
-    socket.on('delete-single-chat', async (chatId) => {
+    // ====== NAYA: POORA CONVERSATION (SESSION) DELETE KARNA ======
+    socket.on('delete-session', async (sessionId) => {
         try {
-            await ChatMsg.findByIdAndDelete(chatId);
-            logToAdminAndDB("Chat Deleted", `Admin deleted a specific chat message (ID: ${chatId})`);
+            await ChatMsg.deleteMany({ sessionId: sessionId });
+            logToAdminAndDB("Chat Deleted", `Admin ne ek poori conversation file delete ki.`);
             socket.emit('chat-delete-success');
         } catch (err) {
-            console.error("Single chat delete error:", err.message);
+            console.error("Session delete error:", err.message);
         }
     });
 
-    // ====== NAYA: SAARE CHATS DELETE KARNA (CLEANUP) ======
-    socket.on('delete-all-chats', async () => {
+    // ====== CHAT MESSAGES WITH DB SAVE & LIVE FEED ======
+    socket.on('send-message', async (msg) => {
+        const user = users[socket.id];
+        if (user && user.partnerId) {
+            io.to(user.partnerId).emit('receive-message', msg);
+        }
+
         try {
-            await ChatMsg.deleteMany({});
-            logToAdminAndDB("Database Cleanup", "Admin deleted ALL chat history");
-            socket.emit('chat-delete-success');
-        } catch (err) {
-            console.error("All chats delete error:", err.message);
+            const partner = user ? users[user.partnerId] : null;
+            const senderName = user ? user.username : "Unknown_" + socket.id.substring(0, 4);
+            const receiverName = partner ? partner.username : "Unknown";
+            const sessionId = user ? user.sessionId : "NO_SESSION";
+
+            const newChat = new ChatMsg({
+                sessionId: sessionId,
+                senderName: senderName,
+                receiverName: receiverName,
+                message: msg
+            });
+            const savedChat = await newChat.save();
+
+            const timeStr = new Date(savedChat.timestamp).toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata' });
+            
+            // Live panel par Sender ➔ Receiver bhejna
+            io.to('admin-room').emit('live-chat-update', {
+                sessionId: sessionId,
+                sender: senderName,
+                receiver: receiverName,
+                text: msg,
+                time: timeStr
+            });
+        } catch (error) {
+            console.error("❌ Chat save error:", error.message);
         }
     });
-
+    
     // ====== MATCHING LOGIC ======
     socket.on('start-search', (userData) => {
         if (users[socket.id] && users[socket.id].inCall === true) return;
@@ -192,14 +221,19 @@ io.on('connection', (socket) => {
         );
 
         if (partner) {
+            // NAYA: Jab dono match hon toh ek unique 'Session File' banao
+            const sessionId = "SESSION_" + Date.now() + "_" + Math.floor(Math.random() * 1000);
+
             users[socket.id].inCall = true;
             users[socket.id].partnerId = partner.id;
             users[socket.id].lastPartner = partner.id;
+            users[socket.id].sessionId = sessionId; // File ka ID dono ko de do
 
             users[partner.id].inCall = true;
             users[partner.id].partnerId = socket.id;
             users[partner.id].lastPartner = socket.id;
-
+            users[partner.id].sessionId = sessionId; // File ka ID dono ko de do
+            
             activeCalls++;
 
             io.to(socket.id).emit('match-found', {

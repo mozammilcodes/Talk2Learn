@@ -1198,23 +1198,44 @@ th {
 .chat-sender { color: #00a8ff; font-weight: bold; margin-right: 5px; }
 .chat-text { color: #ecf0f1; }
 
-/* Vault History Cards */
-.history-card {
+/* ====== NAYA: VAULT FOLDER STYLES ====== */
+.history-folder {
     background: #2f3640;
-    border-left: 4px solid #e1b12c;
-    padding: 12px;
-    margin-bottom: 10px;
-    border-radius: 5px;
+    border: 1px solid #718093;
+    border-radius: 8px;
+    margin-bottom: 15px;
+    overflow: hidden;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+}
+
+.folder-header {
+    background: #353b48;
+    padding: 12px 15px;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    text-align: left;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    border-bottom: 1px solid #718093;
 }
-.history-card-content { flex: 1; }
-.history-time { color: #f1c40f; font-size: 0.8em; margin-bottom: 4px; display: block;}
-.history-sender { color: #00a8ff; font-weight: bold; }
-.history-text { color: #ecf0f1; margin-left: 5px; }
+
+.folder-title {
+    color: #fbc531;
+    font-weight: bold;
+    font-size: 1.1em;
+}
+
+.folder-messages {
+    padding: 15px;
+    max-height: 250px;
+    overflow-y: auto;
+    background: #1e272e;
+}
+
+.folder-msg-line {
+    margin-bottom: 8px;
+    border-left: 2px solid #00a8ff;
+    padding-left: 10px;
+    text-align: left;
+}
 
 .history-del-btn {
     background: #e84118;
@@ -1223,10 +1244,10 @@ th {
     padding: 6px 12px;
     border-radius: 4px;
     cursor: pointer;
-    margin-left: 15px;
     font-weight: bold;
     transition: 0.2s;
 }
+
 .history-del-btn:hover {
     background: #c23616;
     transform: scale(1.05);
