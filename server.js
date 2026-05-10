@@ -265,36 +265,6 @@ io.on('connection', (socket) => {
         }
     });
 
-    // ====== CHAT MESSAGES WITH DB SAVE & LIVE FEED ======
-    socket.on('send-message', async (msg) => {
-        const user = users[socket.id];
-        
-        if (user && user.partnerId) {
-            io.to(user.partnerId).emit('receive-message', msg);
-        }
-
-        try {
-            const senderName = user ? user.username : "Unknown_" + socket.id.substring(0, 4);
-            const newChat = new ChatMsg({
-                senderName: senderName,
-                message: msg
-            });
-            const savedChat = await newChat.save();
-            console.log("📝 Chat saved to DB:", msg);
-
-            // Live Chat Dashboard par bhejo
-            const timeStr = new Date(savedChat.timestamp).toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata' });
-            io.to('admin-room').emit('live-chat-update', {
-                sender: senderName,
-                text: msg,
-                time: timeStr
-            });
-
-        } catch (error) {
-            console.error("❌ Chat save error:", error.message);
-        }
-    });
-
     socket.on('call-ended', () => {
         const user = users[socket.id];
         if (user && user.inCall) {
